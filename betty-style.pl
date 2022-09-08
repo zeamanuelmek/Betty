@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl
 # (c) 2001, Dave Jones. (the file handling bit)
 # (c) 2005, Joel Schopp <jschopp@austin.ibm.com> (the ugly bit)
 # (c) 2007,2008, Andy Whitcroft <apw@uk.ibm.com> (new conditions, test suite)
@@ -7,8 +7,12 @@
 
 use strict;
 use warnings;
+<<<<<<< HEAD
 use diagnostics;
 
+=======
+use POSIX;
+>>>>>>> master
 use File::Basename;
 use Cwd 'abs_path';
 use Term::ANSIColor qw(:constants);
@@ -22,8 +26,25 @@ my $min_perl_version = 5.10.0;
 my $verbose = 0;
 my $brief = 0;
 my $help = 0;
+<<<<<<< HEAD
 my $version = 0;
+=======
+my $printVersion = 0;
+my $configuration_file = ".checkpatch.conf";
+my $max_line_length = 80;
+my $max_func_length = 40;
+my $max_funcs = 5;
+my $safe_guard = 1;
+my $allow_global_variables = 0;
+my $ignore_perl_version = 0;
+my $minimum_perl_version = 5.10.0;
+my $min_conf_desc_length = 4;
+my $spelling_file = "$D/spelling.txt";
+my $codespell = 0;
+my $codespellfile = "/usr/share/codespell/dictionary.txt";
+>>>>>>> master
 my $color = 1;
+my $recursive = 0;
 
 # Command-line options with default values
 my $trailing_whitespace = 1;
@@ -159,6 +180,7 @@ Options:
   -b, --brief                    Brief mode. One line per warning. No summary
   --[no]color                    Use colors when output is STDOUT (default: on)
 
+<<<<<<< HEAD
   --[no]trailing-whitespace      Check for trailing whitespaces (default: on)
   --[no]long-line                Check for long lines (default: on)
   --long-line-max=n              When --long-line is enaled, set the maximum length of a line (default: 80)
@@ -265,6 +287,16 @@ Options:
   --[no]single-semicolon         Check termination with only one semicolon (default: on)
   --[no]missing-break            Check for missing break in switch/case statement (default: on)
   --[no]default-no-break         Check for missing break in switch/default statement (default: on)
+=======
+  --max-line-length=n        Set the maximum length of a line (default: 80)
+  --max-func-length=n        Set the maximum length of a function (default: 40)
+  --max-funcs=n              Set the maximum declared functions per source file
+                             (default: 5)
+                             Set it to -1 for infinite
+  --no-safe-guard            Don't check for header files protection
+  --allow-global-variables   Allow global variable definition
+  -r, --recursive            Run for every C source file (.c and .h) recursively
+>>>>>>> master
 
   -h, --help                     Display this help and exit
   -v, --version                  Display the version of the srcipt and exit
@@ -282,6 +314,7 @@ GetOptions(
 	'b|brief'	=> \$brief,
 	'color!'	=> \$color,
 	'h|help'	=> \$help,
+<<<<<<< HEAD
 	'v|version'	=> \$version,
 
 	'trailing-whitespace!' => \$trailing_whitespace,
@@ -390,6 +423,15 @@ GetOptions(
 	'single-semicolon!' => \$single_semicolon,
 	'missing-break!' => \$missing_break,
 	'default-no-break!' => \$default_no_break
+=======
+	'version'	=> \$printVersion,
+	'max-line-length=i' => \$max_line_length,
+	'max-func-length=i' => \$max_func_length,
+	'max-funcs=i'	=> \$max_funcs,
+	'safe-guard!'	=> \$safe_guard,
+	'allow-global-variables!'	=> \$allow_global_variables,
+	'r|recursive!'	=> \$recursive
+>>>>>>> master
 ) or help(1);
 help(0) if ($help);
 version(0) if ($version);
@@ -401,7 +443,7 @@ if ($^V && $^V lt $min_perl_version) {
 	exit(1);
 }
 
-if ($#ARGV < 0) {
+if ($recursive == 0 && $#ARGV < 0) {
 	my $exec_name = basename($P);
 	print "$exec_name: no input files\n";
 	print "Run '$exec_name --help' for usage\n";
@@ -728,7 +770,47 @@ my $total_warns = 0;
 my $total_lines = 0;
 my $total_files = 0;
 
+<<<<<<< HEAD
 foreach my $filename (@ARGV) {
+=======
+if ($git) {
+	my @commits = ();
+	foreach my $commit_expr (@ARGV) {
+		my $git_range;
+		if ($commit_expr =~ m/^(.*)-(\d+)$/) {
+			$git_range = "-$2 $1";
+		} elsif ($commit_expr =~ m/\.\./) {
+			$git_range = "$commit_expr";
+		} else {
+			$git_range = "-1 $commit_expr";
+		}
+		my $lines = `git log --no-color --no-merges --pretty=format:'%H %s' $git_range`;
+		foreach my $line (split(/\n/, $lines)) {
+			$line =~ /^([0-9a-fA-F]{40,40}) (.*)$/;
+			next if (!defined($1) || !defined($2));
+			my $sha1 = $1;
+			my $subject = $2;
+			unshift(@commits, $sha1);
+			$git_commits{$sha1} = $subject;
+		}
+	}
+	die "$P: no git commits after extraction!\n" if (@commits == 0);
+	@ARGV = @commits;
+}
+
+my @files_to_process = @ARGV;
+if ($recursive == 1) {
+	@files_to_process = split(/\n/, `find . -name "*.c" -o -name "*.h"`);
+	if (scalar @files_to_process == 0) {
+		my $exec_name = basename($P);
+		print "$exec_name: no input files\n";
+		exit(1);
+	}
+}
+
+my $vname;
+for my $filename (@files_to_process) {
+>>>>>>> master
 	my $FILE;
 
 	if (! -f $filename) {
@@ -1494,6 +1576,13 @@ sub pos_last_openparen {
 	return length(expand_tabs(substr($line, 0, $last_openparen))) + 1;
 }
 
+sub count {
+	my ($s, $r) = @_;
+
+	my $count = () = "$s" =~ /$r/g;
+	return $count;
+}
+
 sub process {
 	my $filename = shift;
 
@@ -1504,7 +1593,6 @@ sub process {
 	my $stashrawline = "";
 
 	my $length;
-	my $real_length;
 	my $indent;
 	my $previndent = 0;
 	my $stashindent = 0;
@@ -1601,13 +1689,30 @@ sub process {
 	$realcnt = 0;
 	$linenr = 0;
 	my $nbfunc = 0;
+	my $infunc = 0;
+	my $infuncproto = 0;
+	my $funcprotovalid = 0; # Prevline ended a valid function prototype (no trailing ';')
+	my $realscope = 0;
 	my $inscope = 0;
 	my $funclines = 0;
+	my $incond = 0;
+	my $condparentheses_depth = 0;
+	my $inparams = 0;
+	my $paramsparentheses_depth = 0;
 
 	foreach my $line (@lines) {
 		$linenr++;
+<<<<<<< HEAD
 		my $sline = $line; #copy of $line
 		$sline =~ s/$;/ /g; #with comments as spaces
+=======
+		$fixlinenr++;
+		my $sline = $line;	#copy of $line
+		$sline =~ s/$;/ /g;	#with comments as spaces
+		my $previnscope = $realscope;
+		$realscope = $inscope;
+		my $onelinescope = 0;
+>>>>>>> master
 
 		my $rawline = $rawlines[$linenr - 1];
 
@@ -1637,7 +1742,10 @@ sub process {
 
 			# Measure the line length and indent.
 			($length, $indent) = line_stats($rawline);
+<<<<<<< HEAD
 			$real_length = length($rawline);
+=======
+>>>>>>> master
 
 			# Track the previous line.
 			($prevline, $stashline) = ($stashline, $line);
@@ -1657,7 +1765,436 @@ sub process {
 #make up the handle for any error we report on this line
 		$prefix = "$filename:$realline: ";
 
+<<<<<<< HEAD
 		$total_lines++ if ($realcnt != 0);
+=======
+		if ($found_file) {
+			if ($realfile =~ m@^(?:drivers/net/|net/|drivers/staging/)@) {
+				$check = 1;
+			} else {
+				$check = $check_orig;
+			}
+			next;
+		}
+
+		$here .= "FILE: $realfile:$realline:" if ($realcnt != 0);
+
+		my $hereline = "$here\n$rawline\n";
+		my $herecurr = "$here\n$rawline\n";
+		my $hereprev = "$here\n$prevrawline\n$rawline\n";
+
+		$cnt_lines++ if ($realcnt != 0);
+
+# Check for global variables (not allowed).
+		if ($allow_global_variables == 0 &&
+		    $inscope == 0 &&
+		    $infuncproto == 0) {
+			if ($line =~ /^\+\s*$Type\s*$Ident(?:\s+$Modifier)*(?:\s*=\s*.*)?;/ ||
+			    $line =~ /^\+\s*$Declare\s*\(\s*\*\s*$Ident\s*\)\s*[=,;:\[\(].*;/ ||
+			    $line =~ /^\+\s*$Ident(?:\s+|\s*\*\s*)$Ident\s*[=,;\[]/ ||
+			    $line =~ /^\+\s*$declaration_macros/) {
+				ERROR("GLOBAL_DECLARATION",
+					"global variables are not allowed\n" . $herecurr);
+			}
+		}
+
+# Detect possible multiline function definition
+		if (!$infuncproto && $line =~ /^.((?:typedef\s*)?(?:(?:$Storage|$Inline)\s*(?:$Attribute\s*)?)*\s*$Type\s*(?:\b$Ident|\(\*\s*$Ident\))\s*)\(/s) {
+			$funcprotovalid = 0;
+			$infuncproto = 0;
+
+			if ($line =~ /\)\s*$/ && ($line =~ tr/(// == $line =~ tr/)//)) {
+				# Line ends with closing parenthesis -> End of function prototype
+				$funcprotovalid = 1;
+			}
+			else {
+				$infuncproto = 1;
+			}
+		}
+		elsif ($infuncproto && $line =~ /\)\s*$/ && ($line =~ tr/(// == ($line =~ tr/)// - 1))) {
+			# Line ends with closing parenthesis -> End of function prototype
+			$funcprotovalid = 1;
+			$infuncproto = 0;
+		}
+
+# Check whether current line is part of
+# a multi line condition
+		if ($incond == 1 && $prevline =~ /\)/g) {
+			$condparentheses_depth -= count($prevline, qr/\)/);
+			$incond = 0 if ($condparentheses_depth == 0);
+			# print "[$incond] <$prevline>\n";
+		}
+
+		if ($incond == 0 &&
+		    $prevline =~ /(?:if|else|while|for)\s*\(/ &&
+		    $prevline =~ /\(/g) {
+			$condparentheses_depth += count($prevline, qr/\(/);
+			if ($prevline =~ /\)/g) {
+				$condparentheses_depth -= count($prevline, qr/\)/);
+			}
+			if ($condparentheses_depth > 0 &&
+			    $line =~ /\(/g) {
+				$condparentheses_depth += count($line, qr/\(/);
+			}
+			$incond = 1 if ($condparentheses_depth > 0);
+		}
+
+# Check whether current line is part of
+# a multi line parameters list
+		if ($inparams == 1 && $prevline =~ /\)/g) {
+			$paramsparentheses_depth -= count($prevline, qr/\)/);
+			$inparams = 0 if ($paramsparentheses_depth == 0);
+		}
+
+		if ($inparams == 0 &&
+		    $prevline =~ /$Ident\(/ &&
+		    $prevline !~ /;\s*$/ &&
+		    $prevline =~ /\(/g) {
+			$paramsparentheses_depth += count($prevline, qr/\(/);
+			if ($prevline =~ /\)/g) {
+				$paramsparentheses_depth -= count($prevline, qr/\)/);
+			}
+			if ($paramsparentheses_depth > 0 &&
+			    $line =~ /\(/g) {
+				$paramsparentheses_depth += count($line, qr/\(/);
+			}
+			$inparams = 1 if ($paramsparentheses_depth > 0);
+		}
+
+# check number of functions
+# and number of lines per function
+		if ($line =~ /(\{)/g) {
+			$inscope += $#-; # TODO: Change to count()
+			if ($funcprotovalid && $inscope == 1) {
+				$infunc = 1;
+				$nbfunc++;
+				$funclines = -1;
+				if ($max_funcs > 0 && $nbfunc > $max_funcs) {
+					my $tmpline = $realline - 1;
+					$prefix = "$realfile:$tmpline: ";
+					ERROR("FUNCTIONS",
+					  "More than $max_funcs functions in the file\n");
+				}
+			}
+		}
+		elsif ($previnscope == $realscope &&
+		       $incond == 0 &&
+		       $prevline !~ /^.\s*\#/ &&
+		       $prevline =~ /\+\s*(if|else|while|for|do)/) {
+			$onelinescope = 1;
+		}
+
+		if ($line =~ /(})/g) {
+			$inscope -= $#-;
+			$infunc = 0 if ($inscope == 0);
+			$funclines = 0 if ($infunc == 0);
+			$realscope = $inscope;
+		}
+
+		if ($inscope >= 1 && $infunc == 1) {
+			$funclines++;
+			if ($funclines > $max_func_length) {
+				WARN("FUNCTIONS",
+				  "More than $max_func_length lines in a function\n");
+			}
+		}
+
+# Check if the commit log has what seems like a diff which can confuse patch
+		if ($in_commit_log && !$commit_log_has_diff &&
+		    (($line =~ m@^\s+diff\b.*a/[\w/]+@ &&
+		      $line =~ m@^\s+diff\b.*a/([\w/]+)\s+b/$1\b@) ||
+		     $line =~ m@^\s*(?:\-\-\-\s+a/|\+\+\+\s+b/)@ ||
+		     $line =~ m/^\s*\@\@ \-\d+,\d+ \+\d+,\d+ \@\@/)) {
+			ERROR("DIFF_IN_COMMIT_MSG",
+			      "Avoid using diff content in the commit message - patch(1) might not work\n" . $herecurr);
+			$commit_log_has_diff = 1;
+		}
+
+# Check for incorrect file permissions
+		if ($line =~ /^new (file )?mode.*[7531]\d{0,2}$/) {
+			my $permhere = $here . "FILE: $realfile\n";
+			if ($realfile !~ m@scripts/@ &&
+			    $realfile !~ /\.(py|pl|awk|sh)$/) {
+				ERROR("EXECUTE_PERMISSIONS",
+				      "do not set execute permissions for source files\n" . $permhere);
+			}
+		}
+
+# Check the patch for a signoff:
+		if ($line =~ /^\s*signed-off-by:/i) {
+			$signoff++;
+			$in_commit_log = 0;
+		}
+
+# Check if MAINTAINERS is being updated.  If so, there's probably no need to
+# emit the "does MAINTAINERS need updating?" message on file add/move/delete
+		if ($line =~ /^\s*MAINTAINERS\s*\|/) {
+			$reported_maintainer_file = 1;
+		}
+
+# Check signature styles
+		if (!$in_header_lines &&
+		    $line =~ /^(\s*)([a-z0-9_-]+by:|$signature_tags)(\s*)(.*)/i) {
+			my $space_before = $1;
+			my $sign_off = $2;
+			my $space_after = $3;
+			my $email = $4;
+			my $ucfirst_sign_off = ucfirst(lc($sign_off));
+
+			if ($sign_off !~ /$signature_tags/) {
+				WARN("BAD_SIGN_OFF",
+				     "Non-standard signature: $sign_off\n" . $herecurr);
+			}
+			if (defined $space_before && $space_before ne "") {
+				if (WARN("BAD_SIGN_OFF",
+					 "Do not use whitespace before $ucfirst_sign_off\n" . $herecurr) &&
+				    $fix) {
+					$fixed[$fixlinenr] =
+					    "$ucfirst_sign_off $email";
+				}
+			}
+			if ($sign_off =~ /-by:$/i && $sign_off ne $ucfirst_sign_off) {
+				if (WARN("BAD_SIGN_OFF",
+					 "'$ucfirst_sign_off' is the preferred signature form\n" . $herecurr) &&
+				    $fix) {
+					$fixed[$fixlinenr] =
+					    "$ucfirst_sign_off $email";
+				}
+
+			}
+			if (!defined $space_after || $space_after ne " ") {
+				if (WARN("BAD_SIGN_OFF",
+					 "Use a single space after $ucfirst_sign_off\n" . $herecurr) &&
+				    $fix) {
+					$fixed[$fixlinenr] =
+					    "$ucfirst_sign_off $email";
+				}
+			}
+
+			my ($email_name, $email_address, $comment) = parse_email($email);
+			my $suggested_email = format_email(($email_name, $email_address));
+			if ($suggested_email eq "") {
+				ERROR("BAD_SIGN_OFF",
+				      "Unrecognized email address: '$email'\n" . $herecurr);
+			} else {
+				my $dequoted = $suggested_email;
+				$dequoted =~ s/^"//;
+				$dequoted =~ s/" </ </;
+				# Don't force email to have quotes
+				# Allow just an angle bracketed address
+				if ("$dequoted$comment" ne $email &&
+				    "<$email_address>$comment" ne $email &&
+				    "$suggested_email$comment" ne $email) {
+					WARN("BAD_SIGN_OFF",
+					     "email address '$email' might be better as '$suggested_email$comment'\n" . $herecurr);
+				}
+			}
+
+# Check for duplicate signatures
+			my $sig_nospace = $line;
+			$sig_nospace =~ s/\s//g;
+			$sig_nospace = lc($sig_nospace);
+			if (defined $signatures{$sig_nospace}) {
+				WARN("BAD_SIGN_OFF",
+				     "Duplicate signature\n" . $herecurr);
+			} else {
+				$signatures{$sig_nospace} = 1;
+			}
+		}
+
+# Check email subject for common tools that don't need to be mentioned
+		if ($in_header_lines &&
+		    $line =~ /^Subject:.*\b(?:checkpatch|sparse|smatch)\b[^:]/i) {
+			WARN("EMAIL_SUBJECT",
+			     "A patch subject line should describe the change not the tool that found it\n" . $herecurr);
+		}
+
+# Check for old stable address
+		if ($line =~ /^\s*cc:\s*.*<?\bstable\@kernel\.org\b>?.*$/i) {
+			ERROR("STABLE_ADDRESS",
+			      "The 'stable' address should be 'stable\@vger.kernel.org'\n" . $herecurr);
+		}
+
+# Check for unwanted Gerrit info
+		if ($in_commit_log && $line =~ /^\s*change-id:/i) {
+			ERROR("GERRIT_CHANGE_ID",
+			      "Remove Gerrit Change-Id's before submitting upstream.\n" . $herecurr);
+		}
+
+# Check if the commit log is in a possible stack dump
+		if ($in_commit_log && !$commit_log_possible_stack_dump &&
+		    ($line =~ /^\s*(?:WARNING:|BUG:)/ ||
+		     $line =~ /^\s*\[\s*\d+\.\d{6,6}\s*\]/ ||
+					# timestamp
+		     $line =~ /^\s*\[\<[0-9a-fA-F]{8,}\>\]/)) {
+					# stack dump address
+			$commit_log_possible_stack_dump = 1;
+		}
+
+# Check for line lengths > 75 in commit log, warn once
+		if ($in_commit_log && !$commit_log_long_line &&
+		    length($line) > 75 &&
+		    !($line =~ /^\s*[a-zA-Z0-9_\/\.]+\s+\|\s+\d+/ ||
+					# file delta changes
+		      $line =~ /^\s*(?:[\w\.\-]+\/)++[\w\.\-]+:/ ||
+					# filename then :
+		      $line =~ /^\s*(?:Fixes:|Link:)/i ||
+					# A Fixes: or Link: line
+		      $commit_log_possible_stack_dump)) {
+			WARN("COMMIT_LOG_LONG_LINE",
+			     "Possible unwrapped commit description (prefer a maximum 75 chars per line)\n" . $herecurr);
+			$commit_log_long_line = 1;
+		}
+
+# Reset possible stack dump if a blank line is found
+		if ($in_commit_log && $commit_log_possible_stack_dump &&
+		    $line =~ /^\s*$/) {
+			$commit_log_possible_stack_dump = 0;
+		}
+
+# Check for git id commit length and improperly formed commit descriptions
+		if ($in_commit_log && !$commit_log_possible_stack_dump &&
+		    $line !~ /^\s*(?:Link|Patchwork|http|BugLink):/i &&
+		    ($line =~ /\bcommit\s+[0-9a-f]{5,}\b/i ||
+		     ($line =~ /\b[0-9a-f]{12,40}\b/i &&
+		      $line !~ /[\<\[][0-9a-f]{12,40}[\>\]]/i &&
+		      $line !~ /\bfixes:\s*[0-9a-f]{12,40}/i))) {
+			my $init_char = "c";
+			my $orig_commit = "";
+			my $short = 1;
+			my $long = 0;
+			my $case = 1;
+			my $space = 1;
+			my $hasdesc = 0;
+			my $hasparens = 0;
+			my $id = '0123456789ab';
+			my $orig_desc = "commit description";
+			my $description = "";
+
+			if ($line =~ /\b(c)ommit\s+([0-9a-f]{5,})\b/i) {
+				$init_char = $1;
+				$orig_commit = lc($2);
+			} elsif ($line =~ /\b([0-9a-f]{12,40})\b/i) {
+				$orig_commit = lc($1);
+			}
+
+			$short = 0 if ($line =~ /\bcommit\s+[0-9a-f]{12,40}/i);
+			$long = 1 if ($line =~ /\bcommit\s+[0-9a-f]{41,}/i);
+			$space = 0 if ($line =~ /\bcommit [0-9a-f]/i);
+			$case = 0 if ($line =~ /\b[Cc]ommit\s+[0-9a-f]{5,40}[^A-F]/);
+			if ($line =~ /\bcommit\s+[0-9a-f]{5,}\s+\("([^"]+)"\)/i) {
+				$orig_desc = $1;
+				$hasparens = 1;
+			} elsif ($line =~ /\bcommit\s+[0-9a-f]{5,}\s*$/i &&
+				 defined $rawlines[$linenr] &&
+				 $rawlines[$linenr] =~ /^\s*\("([^"]+)"\)/) {
+				$orig_desc = $1;
+				$hasparens = 1;
+			} elsif ($line =~ /\bcommit\s+[0-9a-f]{5,}\s+\("[^"]+$/i &&
+				 defined $rawlines[$linenr] &&
+				 $rawlines[$linenr] =~ /^\s*[^"]+"\)/) {
+				$line =~ /\bcommit\s+[0-9a-f]{5,}\s+\("([^"]+)$/i;
+				$orig_desc = $1;
+				$rawlines[$linenr] =~ /^\s*([^"]+)"\)/;
+				$orig_desc .= " " . $1;
+				$hasparens = 1;
+			}
+
+			($id, $description) = git_commit_info($orig_commit,
+							      $id, $orig_desc);
+
+			if ($short || $long || $space || $case || ($orig_desc ne $description) || !$hasparens) {
+				ERROR("GIT_COMMIT_ID",
+				      "Please use git commit description style 'commit <12+ chars of sha1> (\"<title line>\")' - ie: '${init_char}ommit $id (\"$description\")'\n" . $herecurr);
+			}
+		}
+
+# Check for added, moved or deleted files
+		if (!$reported_maintainer_file && !$in_commit_log &&
+		    ($line =~ /^(?:new|deleted) file mode\s*\d+\s*$/ ||
+		     $line =~ /^rename (?:from|to) [\w\/\.\-]+\s*$/ ||
+		     ($line =~ /\{\s*([\w\/\.\-]*)\s*\=\>\s*([\w\/\.\-]*)\s*\}/ &&
+		      (defined($1) || defined($2))))) {
+			$reported_maintainer_file = 1;
+			WARN("FILE_PATH_CHANGES",
+			     "added, moved or deleted file(s), does MAINTAINERS need updating?\n" . $herecurr);
+		}
+
+# Check for wrappage within a valid hunk of the file
+		if ($realcnt != 0 && $line !~ m{^(?:\+|-| |\\ No newline|$)}) {
+			ERROR("CORRUPTED_PATCH",
+			      "patch seems to be corrupt (line wrapped?)\n" .
+				$herecurr) if (!$emitted_corrupt++);
+		}
+
+# Check for absolute kernel paths.
+		if ($tree) {
+			while ($line =~ m{(?:^|\s)(/\S*)}g) {
+				my $file = $1;
+
+				if ($file =~ m{^(.*?)(?::\d+)+:?$} &&
+				    check_absolute_file($1, $herecurr)) {
+					#
+				} else {
+					check_absolute_file($file, $herecurr);
+				}
+			}
+		}
+
+# UTF-8 regex found at http://www.w3.org/International/questions/qa-forms-utf-8.en.php
+		if (($realfile =~ /^$/ || $line =~ /^\+/) &&
+		    $rawline !~ m/^$UTF8*$/) {
+			my ($utf8_prefix) = ($rawline =~ /^($UTF8*)/);
+
+			my $blank = copy_spacing($rawline);
+			my $ptr = substr($blank, 0, length($utf8_prefix)) . "^";
+			my $hereptr = "$hereline$ptr\n";
+
+			CHK("INVALID_UTF8",
+			    "Invalid UTF-8, patch and commit message should be encoded in UTF-8\n" . $hereptr);
+		}
+
+# Check if it's the start of a commit log
+# (not a header line and we haven't seen the patch filename)
+		if ($in_header_lines && $realfile =~ /^$/ &&
+		    !($rawline =~ /^\s+\S/ ||
+		      $rawline =~ /^(commit\b|from\b|[\w-]+:).*$/i)) {
+			$in_header_lines = 0;
+			$in_commit_log = 1;
+		}
+
+# Check if there is UTF-8 in a commit log when a mail header has explicitly
+# declined it, i.e defined some charset where it is missing.
+		if ($in_header_lines &&
+		    $rawline =~ /^Content-Type:.+charset="(.+)".*$/ &&
+		    $1 !~ /utf-8/i) {
+			$non_utf8_charset = 1;
+		}
+
+		if ($in_commit_log && $non_utf8_charset && $realfile =~ /^$/ &&
+		    $rawline =~ /$NON_ASCII_UTF8/) {
+			WARN("UTF8_BEFORE_PATCH",
+			    "8-bit UTF-8 used in possible commit log\n" . $herecurr);
+		}
+
+# Check for various typo / spelling mistakes
+		if (defined($misspellings) &&
+		    ($in_commit_log || $line =~ /^(?:\+|Subject:)/i)) {
+			while ($rawline =~ /(?:^|[^a-z@])($misspellings)(?:\b|$|[^a-z@])/gi) {
+				my $typo = $1;
+				my $typo_fix = $spelling_fix{lc($typo)};
+				$typo_fix = ucfirst($typo_fix) if ($typo =~ /^[A-Z]/);
+				$typo_fix = uc($typo_fix) if ($typo =~ /^[A-Z]+$/);
+				my $msg_type = \&WARN;
+				$msg_type = \&CHK if ($file);
+				if (&{$msg_type}("TYPO_SPELLING",
+						 "'$typo' may be misspelled - perhaps '$typo_fix'?\n" . $herecurr) &&
+				    $fix) {
+					$fixed[$fixlinenr] =~ s/(^|[^A-Za-z@])($typo)($|[^A-Za-z@])/$1$typo_fix$3/;
+				}
+			}
+		}
+>>>>>>> master
 
 # ignore non-hunk lines and lines being removed
 		next if (!$hunk_line || $line =~ /^-/);
@@ -1684,10 +2221,15 @@ sub process {
 # if LONG_LINE is ignored, the other 2 types are also ignored
 #
 
+<<<<<<< HEAD
 		if ($long_line &&
 		    $line =~ /^\+/ &&
 		    $real_length > $long_line_max) {
 			my $ignore = 0;
+=======
+		if ($line =~ /^\+/ && $length > $max_line_length) {
+			my $msg_type = "LONG_LINE";
+>>>>>>> master
 
 			# Check the allowed long line types first
 
@@ -1704,11 +2246,35 @@ sub process {
 				$ignore = 1;
 			}
 
+<<<<<<< HEAD
 			if (!$ignore) {
 				WARN("long-line",
 				    "line over $long_line_max characters ($real_length)");
+=======
+			if ($msg_type ne "" &&
+			    (show_type("LONG_LINE") || show_type($msg_type))) {
+				WARN($msg_type,
+				     "line over $max_line_length characters ($length)\n" . $herecurr);
+>>>>>>> master
 			}
 		}
+
+		my $no_comment = $rawline;
+		if ($no_comment =~ /\/\*/ || $no_comment =~ /\*\//) {
+			if ($no_comment =~ /\/\*/ && $no_comment =~ /\*\//) {
+				$no_comment =~ s/\/\*.*\*\///;
+			} elsif ($no_comment =~ /\/\*/) {
+				$no_comment =~ s/\/\*.*//;
+			} else {
+				$no_comment =~ s/.*\*\///;
+			}
+		}
+		if ($no_comment =~ /;\s*[^\s]+/ &&
+		    $no_comment !~ /for/) {
+			# TODO: Really bad detection. To bed fixed
+			#WARN("MULTIPLE_INSTRUCTIONS",
+			#    "multiple instructions on a single line\n");
+		    }
 
 # check for adding lines without a newline.
 		if ($eof_newline &&
@@ -1795,6 +2361,15 @@ sub process {
 
 # Block comment styles
 
+# Block comments use /* on leading line
+		if ($rawline !~ m@^.\s*/\*\s*$@ &&		#leading /*
+		    $rawline !~ m@^.*/\*.*\*/\s*$@ &&		#inline /*...*/
+		    $rawline !~ m@^.*/\*{2,}\s*$@ &&		#leading /**
+		    $rawline =~ m@^.\s*/\*+.+\s*$@) {		#/* non blank
+			WARN("BLOCK_COMMENT_STYLE",
+			    "Block comments use a leading /* on a separate line\n" . $herecurr);
+		}
+
 # Block comments use * on subsequent lines
 		if ($block_comment_subsequent &&
 		    $prevline =~ /$;[ \t]*$/ &&			#ends in comment
@@ -1859,9 +2434,13 @@ sub process {
 			# actual declarations
 		    ($prevline =~ /^\+\s+$Declare\s*$Ident\s*[=,;:\[]/ ||
 			# function pointer declarations
-		     $prevline =~ /^\+\s+$Declare\s*\(\s*\*\s*$Ident\s*\)\s*[=,;:\[\(]/ ||
+		     $prevline =~ /^\+\s+$Declare\s*\(\s*\*+\s*$Ident\s*\)\s*[=,;:\[\(]/ ||
 			# foo bar; where foo is some local typedef or #define
-		     $prevline =~ /^\+\s+$Ident(?:\s+|\s*\*\s*)$Ident\s*[=,;\[]/ ||
+		     $prevline =~ /^\+\s+$Ident(?:\s+|\s*\*+\s*)$Ident\s*[=,;\[]/ ||
+			# const foo bar; where foo is some local typedef or #define
+		     $prevline =~ /^\+\s+\bconst\b\s+$Ident(?:\s+|\s*\*+\s*)$Ident\s*[=,;\[]/ ||
+			# foo const bar; where foo is some local typedef or #define
+		     $prevline =~ /^\+\s+$Ident\s+\bconst\b(?:\s+|\s*\*+\s*)$Ident\s*[=,;\[]/ ||
 			# known declaration macros
 		     $prevline =~ /^\+\s+$declaration_macros/) &&
 			# for "else if" which can look like "$Ident $Ident"
@@ -1873,9 +2452,13 @@ sub process {
 			# looks like a declaration
 		    !($sline =~ /^\+\s+$Declare\s*$Ident\s*[=,;:\[]/ ||
 			# function pointer declarations
-		      $sline =~ /^\+\s+$Declare\s*\(\s*\*\s*$Ident\s*\)\s*[=,;:\[\(]/ ||
+		      $sline =~ /^\+\s+$Declare\s*\(\s*\*+\s*$Ident\s*\)\s*[=,;:\[\(]/ ||
 			# foo bar; where foo is some local typedef or #define
-		      $sline =~ /^\+\s+$Ident(?:\s+|\s*\*\s*)$Ident\s*[=,;\[]/ ||
+		      $sline =~ /^\+\s+$Ident(?:\s+|\s*\*+\s*)$Ident\s*[=,;\[]/ ||
+			# const foo bar; where foo is some local typedef or #define
+		      $sline =~ /^\+\s+\bconst\b\s+$Ident(?:\s+|\s*\*+\s*)$Ident\s*[=,;\[]/ ||
+			# foo const bar; where foo is some local typedef or #define
+		      $sline =~ /^\+\s+$Ident\s+\bconst\b(?:\s+|\s*\*+\s*)$Ident\s*[=,;\[]/ ||
 			# known declaration macros
 		      $sline =~ /^\+\s+$declaration_macros/ ||
 			# start of struct or union or enum
@@ -1885,11 +2468,23 @@ sub process {
 			# bitfield continuation
 		      $sline =~ /^\+\s+$Ident\s*:\s*\d+\s*[,;]/ ||
 			# other possible extensions of declaration lines
-		      $sline =~ /^\+\s+\(?\s*(?:$Compare|$Assignment|$Operators)/) &&
+		      $sline =~ /^\+\s+\(?\s*(?:$Compare|$Assignment|$Operators)/ ||
+			# array of function pointers
+		      $sline =~ /\+\s+($Ident)\s*\(\*+$Ident(?:\[\S*\])?\)\s*\((?:(?:,\s*)?$Ident)*\);/ ||
+		      $sline =~ /\+\s+($Ident)\s*\(\*+$Ident(?:\[\S*\])?\)\s*\((?:(?:,\s*)?$Ident)*\)\s*=/) &&
 			# indentation of previous and current line are the same
 		    (($prevline =~ /\+(\s+)\S/) && $sline =~ /^\+$1\S/)) {
+<<<<<<< HEAD
 			WARN("line-spacing",
 			    "Missing a blank line after declarations");
+=======
+
+			if (WARN("LINE_SPACING",
+				 "Missing a blank line after declarations\n" . $hereprev) &&
+			    $fix) {
+				fix_insert_line($fixlinenr, "\+");
+			}
+>>>>>>> master
 		}
 
 # check for spaces at the beginning of a line.
@@ -1903,6 +2498,27 @@ sub process {
 			    "please, no spaces at the start of a line");
 		}
 
+<<<<<<< HEAD
+=======
+# check for multiple instructions on a single line
+# TODO
+		if ($rawline =~ /;/) {
+			my $pure = $rawline;
+			$pure =~ s/\/\*+.*//;
+			$pure =~ s/.*\*+\///;
+			$pure =~ s/['][^']*[']//g;
+			$pure =~ s/["][^"]*["]//g;
+			my $count = () = $pure =~ /;/g;
+			if ($count > 1 && $pure !~ /\bfor\b/) {
+				WARN("MULTI_INS",
+				    "Multiple instructions on a single line is forbidden\n");
+			}
+		}
+
+# check we are in a valid C source file if not then ignore this hunk
+		next if ($realfile !~ /\.(h|c)$/);
+
+>>>>>>> master
 # Check for header protection
 		if ($realfile =~ /\.h$/) {
 			# The header is not protected yet
@@ -2223,6 +2839,29 @@ sub process {
 			}
 		}
 
+# Check for correct indentation
+		if ($line !~ /^\+\s*#/ &&
+		    $line !~ /^\+\s*$/ &&
+		    $line !~ /^\+ +/) {
+			my $expected_indent = $realscope + $incond + $inparams;
+			$expected_indent-- if ($line =~ /^\+\s*(case\s+\S+|default)\s*:/);
+			# print "[$expected_indent] <$line>\n\t$realscope | $incond | $inparams\n";
+
+			if ($onelinescope != 0) {
+				$expected_indent = ($previndent / 8) + 1;
+			}
+
+			my $line_indent = $indent;
+			if ($rawline =~ /^\+\s*( +)\*/) {
+				$line_indent -= $#-;
+			}
+
+			if ($line_indent != (8 * $expected_indent)) {
+				WARN("LINE_INDENT",
+					"Expected $expected_indent leading tabs\n");
+			}
+		}
+
 		# Track the 'values' across context and added lines.
 		my $opline = $line; $opline =~ s/^./ /;
 		my ($curr_values, $curr_vars) =
@@ -2260,12 +2899,31 @@ sub process {
 			    "that open brace { should be on the previous line");
 		}
 
+<<<<<<< HEAD
 # Check for do/while loop open brace on the same line
 		if ($do_while_open_brace &&
 		    $line =~ /^.\s*{/ &&
 		    $prevline =~ /^.\s*\bdo\b\s*/) {
 			WARN("do-while-open-brace",
 			    "that open brace { should be on the previous line");
+=======
+# check for initialisation to aggregates open brace on the next line
+		if ($line =~ /^.\s*{/ &&
+		    ($prevline =~ /(?:^|[^=])=\s*$/ ||
+		    $prevline =~ /^.\s*\bdo\b\s*/)) {
+			if (ERROR("OPEN_BRACE",
+				  "that open brace { should be on the previous line\n" . $hereprev) &&
+			    $fix && $prevline =~ /^\+/ && $line =~ /^\+/) {
+				fix_delete_line($fixlinenr - 1, $prevrawline);
+				fix_delete_line($fixlinenr, $rawline);
+				my $fixedline = $prevrawline;
+				$fixedline =~ s/\s*=\s*$/ = {/;
+				fix_insert_line($fixlinenr, $fixedline);
+				$fixedline = $line;
+				$fixedline =~ s/^(.\s*)\{\s*/$1/;
+				fix_insert_line($fixlinenr, $fixedline);
+			}
+>>>>>>> master
 		}
 
 #
@@ -2292,6 +2950,7 @@ sub process {
 		$line =~ s@//.*@@;
 		$opline =~ s@//.*@@;
 
+<<<<<<< HEAD
 # Check for global variables (not allowed).
 		if ($global_declaration &&
 		    $inscope == 0 &&
@@ -2301,6 +2960,51 @@ sub process {
 		     $line =~ /^\+\s*$declaration_macros/)) {
 			WARN("global-declaration",
 			    "do not declare global variables");
+=======
+# EXPORT_SYMBOL should immediately follow the thing it is exporting, consider
+# the whole statement.
+#print "APW <$lines[$realline_next - 1]>\n";
+		if (defined $realline_next &&
+		    exists $lines[$realline_next - 1] &&
+		    !defined $suppress_export{$realline_next} &&
+		    ($lines[$realline_next - 1] =~ /EXPORT_SYMBOL.*\((.*)\)/ ||
+		     $lines[$realline_next - 1] =~ /EXPORT_UNUSED_SYMBOL.*\((.*)\)/)) {
+			# Handle definitions which produce identifiers with
+			# a prefix:
+			#   XXX(foo);
+			#   EXPORT_SYMBOL(something_foo);
+			my $name = $1;
+			if ($stat =~ /^(?:.\s*}\s*\n)?.([A-Z_]+)\s*\(\s*($Ident)/ &&
+			    $name =~ /^${Ident}_$2/) {
+#print "FOO C name<$name>\n";
+				$suppress_export{$realline_next} = 1;
+
+			} elsif ($stat !~ /(?:
+				\n.}\s*$|
+				^.DEFINE_$Ident\(\Q$name\E\)|
+				^.DECLARE_$Ident\(\Q$name\E\)|
+				^.LIST_HEAD\(\Q$name\E\)|
+				^.(?:$Storage\s+)?$Type\s*\(\s*\*\s*\Q$name\E\s*\)\s*\(|
+				\b\Q$name\E(?:\s+$Attribute)*\s*(?:;|=|\[|\()
+			    )/x) {
+#print "FOO A<$lines[$realline_next - 1]> stat<$stat> name<$name>\n";
+				$suppress_export{$realline_next} = 2;
+			} else {
+				$suppress_export{$realline_next} = 1;
+			}
+		}
+		if (!defined $suppress_export{$linenr} &&
+		    $prevline =~ /^.\s*$/ &&
+		    ($line =~ /EXPORT_SYMBOL.*\((.*)\)/ ||
+		     $line =~ /EXPORT_UNUSED_SYMBOL.*\((.*)\)/)) {
+#print "FOO B <$lines[$linenr - 1]>\n";
+			$suppress_export{$linenr} = 2;
+		}
+		if (defined $suppress_export{$linenr} &&
+		    $suppress_export{$linenr} == 2) {
+			WARN("EXPORT_SYMBOL",
+			     "EXPORT_SYMBOL(foo); should immediately follow its function/variable\n" . $herecurr);
+>>>>>>> master
 		}
 
 # check for global initialisers.
@@ -2320,6 +3024,7 @@ sub process {
 		while ($misordered_type &&
 		    $sline =~ m{(\b$TypeMisordered\b)}g) {
 			my $tmp = trim($1);
+<<<<<<< HEAD
 			WARN("misordered-type",
 			    "type '$tmp' should be specified in [[un]signed] [short|int|long|long long] order");
 		}
@@ -2329,6 +3034,52 @@ sub process {
 		    $line =~ /(\b$Type\s+$Ident)\s*\(\s*\)/) {
 			WARN("func-without-args",
 			    "$1() should probably be $1(void)");
+=======
+			WARN("MISORDERED_TYPE",
+			     "type '$tmp' should be specified in [[un]signed] [short|int|long|long long] order\n" . $herecurr);
+		}
+
+# check for static const char * arrays.
+		if ($line =~ /\bstatic\s+const\s+char\s*\*\s*(\w+)\s*\[\s*\]\s*=\s*/) {
+			WARN("STATIC_CONST_CHAR_ARRAY",
+			     "static const char * array should probably be static const char * const\n" .
+				$herecurr);
+               }
+
+# check for static char foo[] = "bar" declarations.
+		if ($line =~ /\bstatic\s+char\s+(\w+)\s*\[\s*\]\s*=\s*"/) {
+			WARN("STATIC_CONST_CHAR_ARRAY",
+			     "static char array declaration should probably be static const char\n" .
+				$herecurr);
+               }
+
+# check for const <foo> const where <foo> is not a pointer or array type
+		if ($sline =~ /\bconst\s+($BasicType)\s+const\b/) {
+			my $found = $1;
+			if ($sline =~ /\bconst\s+\Q$found\E\s+const\b\s*\*/) {
+				WARN("CONST_CONST",
+				     "'const $found const *' should probably be 'const $found * const'\n" . $herecurr);
+			} elsif ($sline !~ /\bconst\s+\Q$found\E\s+const\s+\w+\s*\[/) {
+				WARN("CONST_CONST",
+				     "'const $found const' should probably be 'const $found'\n" . $herecurr);
+			}
+		}
+
+# check for non-global char *foo[] = {"bar", ...} declarations.
+	# 	if ($line =~ /^.\s+(?:static\s+|const\s+)?char\s+\*\s*\w+\s*\[\s*\]\s*=\s*\{/) {
+	# 		WARN("STATIC_CONST_CHAR_ARRAY",
+	# 		     "char * array declaration might be better as static const\n" .
+	# 			$herecurr);
+        #        }
+
+# check for function declarations without arguments like "int foo()"
+		if ($line =~ /(\b$Type\s+$Ident)\s*\(\s*\)/) {
+			if (ERROR("FUNCTION_WITHOUT_ARGS",
+				  "$1() should probably be $1(void)\n" . $herecurr) &&
+			    $fix) {
+				$fixed[$fixlinenr] =~ s/(\b($Type)\s+($Ident))\s*\(\s*\)/$2 $3(void)/;
+			}
+>>>>>>> master
 		}
 
 # * goes on variable not on type
@@ -2382,6 +3133,7 @@ sub process {
 			    "open brace following function declarations go on the next line");
 		}
 
+<<<<<<< HEAD
 # check number of functions
 # and number of lines per function
 		if ($line =~ /({)/g) {
@@ -2428,6 +3180,61 @@ sub process {
 			    "$1 definition should be avoided in .c files");
 		}
 
+=======
+# open braces for enum, union and struct go on the same line.
+		# if ($line =~ /^.\s*{/ &&
+		#     $prevline =~ /^.\s*(?:typedef\s+)?(enum|union|struct)(?:\s+$Ident)?\s*$/) {
+		# 	if (ERROR("OPEN_BRACE",
+		# 		  "open brace '{' following $1 go on the same line\n" . $hereprev) &&
+		# 	    $fix && $prevline =~ /^\+/ && $line =~ /^\+/) {
+		# 		fix_delete_line($fixlinenr - 1, $prevrawline);
+		# 		fix_delete_line($fixlinenr, $rawline);
+		# 		my $fixedline = rtrim($prevrawline) . " {";
+		# 		fix_insert_line($fixlinenr, $fixedline);
+		# 		$fixedline = $rawline;
+		# 		$fixedline =~ s/^(.\s*){\s*/$1\t/;
+		# 		if ($fixedline !~ /^\+\s*$/) {
+		# 			fix_insert_line($fixlinenr, $fixedline);
+		# 		}
+		# 	}
+		# }
+
+		if ($realfile =~ /\.c$/ &&
+		    $inscope == 0 &&
+		    ($line !~ /$Type\s*$Ident/ || $line =~ /union\s*$Ident(?!\s+\**$Ident)/) &&
+		    $line =~ /^.\s*(?:typedef\s+)?(enum|union|struct)(?:\s+$Ident)?\s*.*/ &&
+		    $line !~ /;$/) {
+			WARN("STRUCT_DEF",
+				"$1 definition should be avoided in .c files\n");
+		}
+
+		if ($line =~ /^.\s*(?:typedef\s+)?(enum|union|struct)(?:\s+$Ident)?\s*{/) {
+			if (ERROR("OPEN_BRACE",
+				  "open brace '{' following $1 go on the next line\n" . $hereprev) &&
+			    $fix && $prevline =~ /^\+/ && $line =~ /^\+/) {
+				fix_delete_line($fixlinenr - 1, $prevrawline);
+				fix_delete_line($fixlinenr, $rawline);
+				my $fixedline = rtrim($prevrawline) . " {";
+				fix_insert_line($fixlinenr, $fixedline);
+				$fixedline = $rawline;
+				$fixedline =~ s/^(.\s*)\{\s*/$1\t/;
+				if ($fixedline !~ /^\+\s*$/) {
+					fix_insert_line($fixlinenr, $fixedline);
+				}
+			}
+		}
+
+# missing space after union, struct or enum definition
+		# if ($line =~ /^.\s*(?:typedef\s+)?(enum|union|struct)(?:\s+$Ident){1,2}[=\{]/) {
+		# 	if (WARN("SPACING",
+		# 		 "missing space after $1 definition\n" . $herecurr) &&
+		# 	    $fix) {
+		# 		$fixed[$fixlinenr] =~
+		# 		    s/^(.\s*(?:typedef\s+)?(?:enum|union|struct)(?:\s+$Ident){1,2})([=\{])/$1 $2/;
+		# 	}
+		# }
+
+>>>>>>> master
 # Function pointer declarations
 # check spacing between type, funcptr, and args
 # canonical declaration is "type (*funcptr)(args...)"
@@ -2798,6 +3605,7 @@ sub process {
 		if ($space_open_brace &&
 		    ($line =~ /\(.*\)\{/ && $line !~ /\($Type\)\{/) ||
 		    $line =~ /do\{/) {
+<<<<<<< HEAD
 			WARN("space-open-brace",
 			    "space required before the open brace");
 		}
@@ -2808,15 +3616,32 @@ sub process {
 		    $prevrawline =~ /^.\s*$/) {
 			WARN("blank-before-decl",
 			     "No blank lines before declarations");
+=======
+			if (ERROR("SPACING",
+				  "space required before the open brace '{'\n" . $herecurr) &&
+			    $fix) {
+				$fixed[$fixlinenr] =~ s/^(\+.*(?:do|\)))\{/$1 {/;
+			}
+>>>>>>> master
 		}
 
 
 # closing brace should have a space following it when it has anything
 # on the line
+<<<<<<< HEAD
 		if ($close_brace_space &&
 		    $line =~ /}(?!(?:}|,|;|\)))\S/) {
 			WARN("close-brace-space",
 			    "space required after that close brace");;
+=======
+		if ($line =~ /}(?!(?:}|,|;|\)))\S/) {
+			if (ERROR("SPACING",
+				  "space required after that close brace '}'\n" . $herecurr) &&
+			    $fix) {
+				$fixed[$fixlinenr] =~
+				    s/}((?!(?:,|;|\)))\S)/} $1/;
+			}
+>>>>>>> master
 		}
 
 # check spacing on square brackets
@@ -3393,11 +4218,22 @@ sub process {
 		}
 
 # check for spaces before a quoted newline
+<<<<<<< HEAD
 		if ($string_space_new_line &&
 		    $rawline =~ /^.*\".*\s\\n/) {
 			WARN("string-space-new-line",
 			    "unnecessary whitespace before a quoted newline");
 		}
+=======
+		# if ($rawline =~ /^.*\".*\s\\n/) {
+		# 	if (WARN("QUOTED_WHITESPACE_BEFORE_NEWLINE",
+		# 		 "unnecessary whitespace before a quoted newline\n" . $herecurr) &&
+		# 	    $fix) {
+		# 		$fixed[$fixlinenr] =~ s/^(\+.*\".*)\s+\\n/$1\\n/;
+		# 	}
+
+		# }
+>>>>>>> master
 
 # concatenated string without spaces between elements
 		if ($string_concat &&
@@ -3562,12 +4398,21 @@ sub process {
 			if (defined $cond) {
 				substr($s, 0, length($cond), '');
 			}
+<<<<<<< HEAD
 			if ($avoid_externs &&
 			    $s =~ /^\s*;/ &&
 			    $function_name ne 'uninitialized_var') {
 				WARN("avoid-externs",
 				    "externs should be avoided in .c files");
 			}
+=======
+			# if ($s =~ /^\s*;/ &&
+			#     $function_name ne 'uninitialized_var')
+			# {
+			# 	WARN("AVOID_EXTERNS",
+			# 	     "externs should be avoided in .c files\n" .  $herecurr);
+			# }
+>>>>>>> master
 
 			if ($func_args &&
 			    $paren_space =~ /\n/) {

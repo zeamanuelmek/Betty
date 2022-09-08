@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 #!/usr/bin/perl -w
 # Copyright (c) 1998 Michael Zucchi, All Rights Reserved
 # Copyright (C) 2000, 1  Tim Waugh <twaugh@redhat.com>
@@ -14,6 +15,12 @@ use strict;
 use warnings;
 use diagnostics;
 
+=======
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+>>>>>>> master
 use File::Basename;
 use Cwd 'abs_path';
 use Term::ANSIColor qw(:constants);
@@ -56,8 +63,21 @@ Options:
   -b, --brief                     Brief mode. One line per warning. No summary
   --no-color                      Use colors when output is STDOUT (default: on)
 
+<<<<<<< HEAD
   -h, --help                      Display this help and exit
   -v, --version                   Display the version of the srcipt
+=======
+# 25/07/2012 - Added support for HTML5
+# -- Dan Luedtke <mail@danrl.de>
+
+my $V = '1.0';
+my $P = $0;
+
+sub printVersion {
+
+	print STDOUT << "EOM";
+Version: $V
+>>>>>>> master
 EOM
 	exit($exitcode);
 }
@@ -72,9 +92,46 @@ GetOptions(
 help(0) if ($help);
 version(0) if ($version);
 
+<<<<<<< HEAD
 if ($^V && $^V lt $min_perl_version) {
 	printf "$P: requires at least perl version %vd\n", $min_perl_version;
 	exit(1);
+=======
+Read C language source or header FILEs, extract embedded documentation comments,
+and print STDOUT formatted documentation to standard output.
+
+The documentation comments are identified by "/**" opening comment mark. See
+Documentation/kernel-doc-nano-HOWTO.txt for the documentation comment syntax.
+
+Output format selection (mutually exclusive):
+  -docbook		Output DocBook format.
+  -html			Output HTML format.
+  -html5		Output HTML5 format.
+  -list			Output symbol list format. This is the default.
+  -man			Output troff manual page format.
+  -rst			Output reStructuredText format.
+  -text			Output plain text format.
+
+Output selection (mutually exclusive):
+  -function NAME	Only output documentation for the given function(s)
+			or DOC: section title(s). All other functions and DOC:
+			sections are ignored. May be specified multiple times.
+  -nofunction NAME	Do NOT output documentation for the given function(s);
+			only output documentation for the other functions and
+			DOC: sections. May be specified multiple times.
+
+Output selection modifiers:
+  -no-doc-sections	Do not output DOC: sections.
+
+Other parameters:
+  -v			Verbose output, more warnings and other information.
+  -h			print STDOUT this help.
+  -r                    Run for every C source file (.c and .h) recursively
+
+EOF
+    print STDOUT $message;
+    exit 1;
+>>>>>>> master
 }
 
 if ($#ARGV < 0) {
@@ -104,7 +161,39 @@ my @highlights = (
 my $dohighlight = "";
 my $prefix = '';
 
+<<<<<<< HEAD
 my (%parametertypes, $declaration_purpose);
+=======
+my $recursive = 0;
+my $verbose = 0;
+my $output_mode = "list";
+my $output_preformatted = 0;
+my $no_doc_sections = 0;
+my @highlights = @highlights_list;
+my $blankline = $blankline_list;
+my $modulename = "Kernel API";
+my $function_only = 0;
+my $show_not_found = 0;
+
+my @build_time;
+if (defined($ENV{'KBUILD_BUILD_TIMESTAMP'}) &&
+    (my $seconds = `date -d"${ENV{'KBUILD_BUILD_TIMESTAMP'}}" +%s`) ne '') {
+    @build_time = gmtime($seconds);
+} else {
+    @build_time = localtime;
+}
+
+my $man_date = ('January', 'February', 'March', 'April', 'May', 'June',
+		'July', 'August', 'September', 'October',
+		'November', 'December')[$build_time[4]] .
+  " " . ($build_time[5]+1900);
+
+# Essentially these are globals.
+# They probably want to be tidied up, made more localised or something.
+# CAVEAT EMPTOR!  Some of the others I localised may not want to be, which
+# could cause "use of undefined value" or other bugs.
+my ($function, %function_table, %parametertypes, $declaration_purpose);
+>>>>>>> master
 my ($type, $declaration_name, $return_type);
 my ($prototype, $brcount);
 
@@ -170,6 +259,7 @@ my $undescribed = "-- undescribed --";
 
 reset_state();
 
+<<<<<<< HEAD
 #Regular expressions
 our $Storage = qr{extern|static|asmlinkage};
 our $Inline = qr{inline|__always_inline|noinline|__inline|__inline__};
@@ -304,6 +394,68 @@ for (my $k = 0; $k < @highlights; $k++) {
 	my $result = $highlights[$k][1];
 
 	$dohighlight .=  "\$contents =~ s:$pattern:$result:gs;\n";
+=======
+# while ($ARGV[0] =~ m/^-(.*)/) {
+for my $cmd (@ARGV) {
+    if ($cmd =~ m/^-(.*)/) {
+	shift @ARGV;
+    }
+    if ($cmd eq "--version") {
+	printVersion();
+    } elsif ($cmd eq "-html") {
+	$output_mode = "html";
+	@highlights = @highlights_html;
+	$blankline = $blankline_html;
+    } elsif ($cmd eq "-html5") {
+	$output_mode = "html5";
+	@highlights = @highlights_html5;
+	$blankline = $blankline_html5;
+    } elsif ($cmd eq "-man") {
+	$output_mode = "man";
+	@highlights = @highlights_man;
+	$blankline = $blankline_man;
+    } elsif ($cmd eq "-text") {
+	$output_mode = "text";
+	@highlights = @highlights_text;
+	$blankline = $blankline_text;
+    } elsif ($cmd eq "-rst") {
+	$output_mode = "rst";
+	@highlights = @highlights_rst;
+	$blankline = $blankline_rst;
+    } elsif ($cmd eq "-docbook") {
+	$output_mode = "xml";
+	@highlights = @highlights_xml;
+	$blankline = $blankline_xml;
+    } elsif ($cmd eq "-list") {
+	$output_mode = "list";
+	@highlights = @highlights_list;
+	$blankline = $blankline_list;
+    } elsif ($cmd eq "-gnome") {
+	$output_mode = "gnome";
+	@highlights = @highlights_gnome;
+	$blankline = $blankline_gnome;
+    } elsif ($cmd eq "-module") { # not needed for XML, inherits from calling document
+	$modulename = shift @ARGV;
+    } elsif ($cmd eq "-function") { # to only output specific functions
+	$function_only = 1;
+	$function = shift @ARGV;
+	$function_table{$function} = 1;
+    } elsif ($cmd eq "-nofunction") { # to only output specific functions
+	$function_only = 2;
+	$function = shift @ARGV;
+	$function_table{$function} = 1;
+    } elsif ($cmd eq "-v") {
+	$verbose = 1;
+    } elsif (($cmd eq "-h") || ($cmd eq "--help")) {
+	usage();
+    } elsif (($cmd eq "-r") || ($cmd eq "--recursive")) {
+	$recursive = 1;
+    } elsif ($cmd eq '-no-doc-sections') {
+	$no_doc_sections = 1;
+    } elsif ($cmd eq '-show-not-found') {
+	$show_not_found = 1;
+    }
+>>>>>>> master
 }
 
 my $exit = 0;
@@ -436,9 +588,15 @@ sub dump_struct($$) {
 		$declaration_name = $2;
 		my $members = $3;
 
+<<<<<<< HEAD
 		# ignore embedded structs or unions
 		$members =~ s/({.*})//g;
 		$nested = $1;
+=======
+	# ignore embedded structs or unions
+	$members =~ s/(\{.*})//g;
+	$nested = $1;
+>>>>>>> master
 
 		# ignore members marked private:
 		$members =~ s/\/\*\s*private:.*?\/\*\s*public:.*?\*\///gosi;
@@ -858,6 +1016,7 @@ sub dump_function($$) {
 	# - atomic_set (macro)
 	# - pci_match_device, __copy_to_user (long return type)
 
+<<<<<<< HEAD
 	if ($define && $prototype =~ m/^()([a-zA-Z0-9_~:]+)\s+/) {
 		# This is an object-like macro, it has no return type and no parameter
 		# list.
@@ -897,6 +1056,44 @@ sub dump_function($$) {
 			# ++$errors;
 		}
 		return;
+=======
+    if ($define && $prototype =~ m/^()([a-zA-Z0-9_~:]+)\s+/) {
+        # This is an object-like macro, it has no return type and no parameter
+        # list.
+        # Function-like macros are not allowed to have spaces between
+        # declaration_name and opening parenthesis (notice the \s+).
+        $return_type = $1;
+        $declaration_name = $2;
+        $noret = 1;
+    } elsif (($prototype =~ m/^()([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^(\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^(\w+\s*\*)\s*(?:\**\s*)?([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s*\*+)\s*([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s+\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s+\w+\s*\*)\s*([a-zA-Z0-9_~:]+)\s*\(([^\(]*)\)/ ||
+	$prototype =~ m/^()([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s*\*+)\s*([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s*\*)\s*([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s+\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s+\w+\s*\*)\s*([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s+\w+\s+\w+)\s+([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s+\w+\s+\w+\s*\*)\s*([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/ ||
+	$prototype =~ m/^(\w+\s+\w+\s*\*\s*\w+\s*\*\s*)\s*([a-zA-Z0-9_~:]+)\s*\(([^\{]*)\)/) &&
+	$prototype !~ m/^typedef/)  {
+	$return_type = $1;
+	$declaration_name = $2;
+	my $args = $3;
+
+	create_parameterlist($args, ',', $file);
+    } else {
+	if ($prototype !~ /^(?:typedef\s*)?(struct|enum|union)/ &&
+	    $prototype !~ /^typedef/) {
+		print STDERR "${file}:$.: error: cannot understand function prototype: '$prototype'\n";
+		++$errors;
+>>>>>>> master
 	}
 
 	my $prms = join " ", @parameterlist;
@@ -1017,8 +1214,137 @@ sub report_dump {
 	our @report;
 }
 
+<<<<<<< HEAD
 sub WARN {
 	my ($msg) = @_;
+=======
+#Regular expressions
+our $Storage	= qr{extern|static|asmlinkage};
+our $Inline	= qr{inline|__always_inline|noinline|__inline|__inline__};
+our $InitAttributePrefix = qr{__(?:mem|cpu|dev|net_|)};
+our $InitAttributeData = qr{$InitAttributePrefix(?:initdata\b)};
+our $InitAttributeConst = qr{$InitAttributePrefix(?:initconst\b)};
+our $InitAttributeInit = qr{$InitAttributePrefix(?:init\b)};
+our $InitAttribute = qr{$InitAttributeData|$InitAttributeConst|$InitAttributeInit};
+our $Attribute	= qr{
+			const|
+			__percpu|
+			__nocast|
+			__safe|
+			__bitwise__|
+			__packed__|
+			__packed2__|
+			__naked|
+			__maybe_unused|
+			__always_unused|
+			__noreturn|
+			__used|
+			__cold|
+			__pure|
+			__noclone|
+			__deprecated|
+			__read_mostly|
+			__kprobes|
+			$InitAttribute|
+			____cacheline_aligned|
+			____cacheline_aligned_in_smp|
+			____cacheline_internodealigned_in_smp|
+			__weak
+		  }x;
+our $Sparse	= qr{
+			__user|
+			__kernel|
+			__force|
+			__iomem|
+			__pmem|
+			__must_check|
+			__init_refok|
+			__kprobes|
+			__ref|
+			__rcu|
+			__private
+		}x;
+our @modifierList = (
+	qr{fastcall},
+);
+our @modifierListFile = ();
+my $mods = "(?x:  \n" . join("|\n  ", (@modifierList, @modifierListFile)) . "\n)";
+our $Ident	= qr{
+			[A-Za-z_][A-Za-z\d_]*
+			(?:\s*\#\#\s*[A-Za-z_][A-Za-z\d_]*)*
+		}x;
+our @typeListMisordered = (
+	qr{char\s+(?:un)?signed},
+	qr{int\s+(?:(?:un)?signed\s+)?short\s},
+	qr{int\s+short(?:\s+(?:un)?signed)},
+	qr{short\s+int(?:\s+(?:un)?signed)},
+	qr{(?:un)?signed\s+int\s+short},
+	qr{short\s+(?:un)?signed},
+	qr{long\s+int\s+(?:un)?signed},
+	qr{int\s+long\s+(?:un)?signed},
+	qr{long\s+(?:un)?signed\s+int},
+	qr{int\s+(?:un)?signed\s+long},
+	qr{int\s+(?:un)?signed},
+	qr{int\s+long\s+long\s+(?:un)?signed},
+	qr{long\s+long\s+int\s+(?:un)?signed},
+	qr{long\s+long\s+(?:un)?signed\s+int},
+	qr{long\s+long\s+(?:un)?signed},
+	qr{long\s+(?:un)?signed},
+);
+our @typeList = (
+	qr{void},
+	qr{(?:(?:un)?signed\s+)?char},
+	qr{(?:(?:un)?signed\s+)?short\s+int},
+	qr{(?:(?:un)?signed\s+)?short},
+	qr{(?:(?:un)?signed\s+)?int},
+	qr{(?:(?:un)?signed\s+)?long\s+int},
+	qr{(?:(?:un)?signed\s+)?long\s+long\s+int},
+	qr{(?:(?:un)?signed\s+)?long\s+long},
+	qr{(?:(?:un)?signed\s+)?long},
+	qr{(?:un)?signed},
+	qr{float},
+	qr{double},
+	qr{bool},
+	qr{struct\s+$Ident},
+	qr{union\s+$Ident},
+	qr{enum\s+$Ident},
+	qr{${Ident}_t},
+	qr{${Ident}_handler},
+	qr{${Ident}_handler_fn},
+	@typeListMisordered,
+);
+our @typeListFile = ();
+my $all = "(?x:  \n" . join("|\n  ", (@typeList, @typeListFile)) . "\n)";
+our $Modifier	= qr{(?:$Attribute|$Sparse|$mods)};
+our $typeC99Typedefs = qr{(?:__)?(?:[us]_?)?int_?(?:8|16|32|64)_t};
+our $typeOtherOSTypedefs = qr{(?x:
+	u_(?:char|short|int|long) |          # bsd
+	u(?:nchar|short|int|long)            # sysv
+)};
+our $typeKernelTypedefs = qr{(?x:
+	(?:__)?(?:u|s|be|le)(?:8|16|32|64)|
+	atomic_t
+)};
+our $typeTypedefs = qr{(?x:
+	$typeC99Typedefs\b|
+	$typeOtherOSTypedefs\b|
+	$typeKernelTypedefs\b
+)};
+our $NonptrType	= qr{
+		(?:$Modifier\s+|const\s+)*
+		(?:
+			(?:typeof|__typeof__)\s*\([^\)]*\)|
+			(?:$typeTypedefs\b)|
+			(?:${all}\b)
+		)
+		(?:\s+$Modifier|\s+const)*
+	  }x;
+our $Type	= qr{
+		$NonptrType\b
+		(?:(?:\s|\*|\[\])+\s*const\b|(?:\s|\*\s*(?:const\b\s*)?|\[\])+|(?:\s*\[\s*\])+)?
+		(?:\s+$Inline|\s+$Modifier)*
+	  }x;
+>>>>>>> master
 
 	if (report($msg)) {
 		our $clean = 0;
@@ -1060,10 +1386,49 @@ sub process {
 		}
 		$prefix = "$filename:$.: ";
 
+<<<<<<< HEAD
 		# print "($.)STATE:$state($in_doc_sect)\t$_\n";
 		$cnt_lines++;
 
 		my $attr = qr{__attribute__\s*\(\(\w+\)\)};
+=======
+	if ($_ =~ /^(?:typedef\s+)?(?:(?:$Storage|$Inline)\s*)*\s*$Type\s*(?:$attr\s*)?\(?\**($Ident)\s*\(.*\)/s &&
+	    $_ !~ /;\s*$/)
+	{
+		# print STDOUT "Function found: $1\n";
+		if (!length $identifier || $identifier ne $1) {
+			print STDERR "${file}:$.: warning: no description found for function $1\n";
+			++$warnings;
+		}
+		elsif ($_ =~ /^(?:(?:$Storage|$Inline)\s*)*\s*($Type)\s*\(\**($Ident)\s*\((.*)\)\)\s*\(/s) {
+			my $type_ = $1;
+			my $func_ = $2;
+			my $params_ = $3;
+			$_ = "${type_} *${func_} (${params_})\n";
+			# print "LINE:$_\n";
+			# print "FUNCTION -> ${type_} ${func_} (${params_})\n";
+		}
+		elsif ($_ =~ $attr) {
+			$_ =~ s/__attribute__\s*\(\(\w+\)\)//;
+			# print "LINE:$_\n";
+		}
+	}
+
+	if ($_ =~ /^\s*(?:typedef\s+)?(enum|union|struct)(?:\s+($Ident))?\s*.*/s &&
+	    $_ !~ /;\s*$/ &&
+		$_ !~ /\(.*\)\s*$/)
+	{
+		# print STDOUT "$1 found: $2\n";
+		if (!length $identifier ||
+		    !defined $2 ||
+		    (defined $1 && defined $2 &&$identifier ne "$1 $2")) {
+			print STDERR "${file}:$.: warning: no description found for $1";
+			print STDERR " $2" if (defined $2);
+			print STDERR "\n";
+			++$warnings;
+		}
+	}
+>>>>>>> master
 
 		if ($_ =~ /^(?:typedef\s+)?(?:(?:$Storage|$Inline)\s*)*\s*$Type\s*(?:$attr\s*)?\(?\**($Ident)\s*\(.*\)/s &&
 		    $_ !~ /;\s*$/) {
@@ -1283,3 +1648,54 @@ sub process {
 	}
 	return $clean;
 }
+<<<<<<< HEAD
+=======
+
+
+$kernelversion = get_kernel_version();
+
+# generate a sequence of code that will splice in highlighting information
+# using the s// operator.
+for (my $k = 0; $k < @highlights; $k++) {
+    my $pattern = $highlights[$k][0];
+    my $result = $highlights[$k][1];
+#   print STDERR "scanning pattern:$pattern, highlight:($result)\n";
+    $dohighlight .=  "\$contents =~ s:$pattern:$result:gs;\n";
+}
+
+# Read the file that maps relative names to absolute names for
+# separate source and object directories and for shadow trees.
+if (open(SOURCE_MAP, "<.tmp_filelist.txt")) {
+	my ($relname, $absname);
+	while(<SOURCE_MAP>) {
+		chop();
+		($relname, $absname) = (split())[0..1];
+		$relname =~ s:^/+::;
+		$source_map{$relname} = $absname;
+	}
+	close(SOURCE_MAP);
+}
+
+my @files_to_process = @ARGV;
+if ($recursive == 1) {
+	@files_to_process = split(/\n/, `find . -name "*.c" -o -name "*.h"`);
+	if (scalar @files_to_process == 0) {
+		my $exec_name = basename($P);
+		print "$exec_name: no input files\n";
+		exit(1);
+	}
+}
+
+foreach (@files_to_process) {
+    chomp;
+    process_file($_);
+}
+if ($verbose && $errors) {
+  print STDERR "$errors errors\n";
+}
+if ($verbose && $warnings) {
+  print STDERR "$warnings warnings\n";
+}
+
+exit(($errors > 0 || $warnings > 0));
+>>>>>>> master

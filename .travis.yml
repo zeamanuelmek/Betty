@@ -5,9 +5,19 @@ perl:
   - "5.22"
   - "5.20"
   - "5.18"
+<<<<<<< HEAD
 install: true
 sudo: false
 script: perl tests-manager.pl
 branches:
   only:
+=======
+  - "5.16"
+install: true
+sudo: false
+script: bash test.sh
+branches:
+  only:
+    - master
+>>>>>>> master
     - v2
