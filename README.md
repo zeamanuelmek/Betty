@@ -27,3 +27,13 @@ betty-style file1 [file2 [file3 [...]]]
 ```ShellSession
 betty-doc file1 [file2 [file3 [...]]]
 ```
+
+## About Holberton School
+
+![Holberton School logo](https://www.holbertonschool.com/holberton-logo.png)
+
+Holberton school is a community-driven school.  
+We train full-stack software engineers in two years, using peer and project-based learning.  
+At Holberton School, there are no formal teachers and no lectures, student learn by building.
+
+Read more on [our website](https://www.holbertonschool.com/).
